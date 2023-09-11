@@ -24,8 +24,6 @@
 
 #define NUM_LEDS 100  // Replace with the number of LEDs in your strip
 #define BRIGHTNESS          250
-#define yres 12
-#define SAMPLES 128            
 #define NUM_LEDS 150
 #define NUM_LEDS_BELLY 50 
 #define NUM_LEDS_TAIL 50 
@@ -45,10 +43,12 @@ CRGB leds_cloud[NUM_LEDS_CLOUD];
 
 
 // FFPT part
+#define SAMPLES 128            
 #define SAMPLING_FREQUENCY 1000 //Hz, must be less than 10000 due to ADC
 #define xres 32      
-#define yres 8
-int MY_ARRAY[]={0, 128, 192, 224, 240, 248, 252, 254, 255};
+#define yres 12
+int MY_ARRAY[]={0, 128, 192, 224, 240, 248, 252, 254, 255,8,16,32,64,80,90,100,110};
+//int MY_ARRAY[]={0, 128, 192, 224, 240, 248, 252, 254, 255,0,0,0,0,0,0,0,0};
 int MY_MODE_1[]={0, 128, 192, 224, 240, 248, 252, 254, 255};
 int MY_MODE_2[]={0, 128, 64, 32, 16, 8, 4, 2, 1};
 int MY_MODE_3[]={0, 128, 192, 160, 144, 136, 132, 130, 129};
@@ -60,7 +60,17 @@ unsigned long previousMillis = 0;
 unsigned long interval = 1000 / SAMPLE_RATE;  // Sampling interval in milliseconds
 unsigned int sampling_period_us;
 unsigned long microseconds;
- 
+//
+
+// Variables to store the options
+int opt1 = 0;
+int opt2 = 0;
+int opt3 = 3;
+int opt4 = 0;
+int opt5 = 0;
+bool pota = false;
+bool optb = false;
+
 //double vReal[SAMPLES];
 //double vImag[SAMPLES];
 double vReal[512];
@@ -107,117 +117,13 @@ void fftSetup(){
         spectrum[0][i] = pow((i-2)/(samples/2.0-2), exponent) * NUM_LEDS; // **
         spectrum[1][i] = 0; // left  channel values
         spectrum[2][i] = 0; // right channel values
-    }
-    // ** the purpose of this line is to set up the 'logarithmic' spacing 
-    // of the LED lights for different frequencies. The human perception of audio
-    // frequency doesn't ascend linearly, so 
-    // 120Hz vs 130Hz is 'musically' (and proportionally) a bigger change than
-    // 1020Hz vs 1030Hz which is itself a bigger change than 
-    // 10020Hz vs 10030 Hz
-    // For this reason, I tried to set the exponent such that the lowest frequencies
-    // each get their 'own' LED spot, while the higher frequencies 'share' LED spots
-     // right now it is optimized for 72 LEDs, 512 samples ~ 0.66
-     // with more LEDs you'll want a higher exponent, less LEDs a lower exponent, but it's a logarithmic relationship not linear.
-     // let me know if you figure out a way to calculate it automatically, I figured it manually by trying different numbers.
-     
+    }     
     for (uint16_t i = 0; i < samples; i++){
         vReal[i] = 0; //vReal[1][i] = 0;
         vImag[i] = 0; //vImag[1][i] = 0;
     }
 }
 
-//// remember that this code is running independently of your 
-  // main LED code, on the other core of the ESP32.
-void fftLoop(){
-#ifdef debug
-    Serial.println("Starting fftLoop");
-#endif
-
-    //// audio signal capture happens here
-    microseconds = micros();
-    for(int i=0; i<samples; i++){
-        vReal[i] = analogRead(34);
-        vImag[i] = 0;
-#ifdef STEREO
-        //vReal[1][i] = analogRead(RightPin);
-        vImag[1][i] = 0;
-#endif
-        while(micros() - microseconds < sampling_period_us){  }
-        microseconds += sampling_period_us;
-    }
-
-    //// FFT magic happens here
-    LFFT.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-    LFFT.Compute(FFT_FORWARD);
-    LFFT.ComplexToMagnitude();
-    //// audio frequencies are output here into the 'spectrum' array which is then read in the LED code
-    PrintVector(vReal, (samples >> 1), 1);
-
-#ifdef STEREO
-    //// FFT magic happens here
-    RFFT.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-    RFFT.Compute(FFT_FORWARD);
-    RFFT.ComplexToMagnitude();
-    //// audio frequencies are output here into the 'spectrum' array which is then read in the LED code
-    PrintVector(vReal[1], (samples >> 1), 2);
-#endif
-
-#ifdef debug
-    Serial.println("Ending fftLoop");
-#endif
-}
-
-void PrintVector(double *vData, uint16_t bufferSize, int leftRight) {
-    for (uint16_t i = 2; i < bufferSize; i++){
-        if(vData[i] > noise){
-            spectrum[leftRight][i] = vData[i]-noise;
-            if(spectrum[leftRight][i] > MAX)
-                spectrum[leftRight][i] = MAX;
-        }else{
-            spectrum[leftRight][i] = 0;
-        }
-        yield();
-    }
-}
-
-
-void audio_spectrum(){ // using arduinoFFT to calculate frequencies and mapping them to light spectrum
-    uint8_t fadeval = 90;
-    nscale8(leds, NUM_LEDS, fadeval); // smaller = faster fade
-    CRGB tempRGB1, tempRGB2;
-    uint8_t pos = 0, h = 0, s = 0, v = 0;
-    double temp1 = 0, temp2 = 0;
-    for(int i = 2; i < samples/2; i++){
-        pos = spectrum[0][i];
-        h = pos/(NUM_LEDS/2.0)*224;
-        temp1 = spectrum[1][i]/MAX;
-        s = 255 - (temp1*30.0);
-        v = temp1*255.0;
-        tempRGB1 = CHSV(h, s, 255);
-        tempRGB1 = CHSV(h, s, 255);
-        if(tempRGB1 > leds[pos]){
-            leds[pos] = tempRGB1;
-        }
-        Serial.printf("%d %d %d %d\n", pos, h, s);
-        leds[pos] = tempRGB1;
-        FastLED.show();
-        
-
-        uint8_t p = NUM_LEDS/2-1-pos;
-#ifdef STEREO
-        temp2 = spectrum[2][i]/MAX;
-        s = 255 - (temp2*30.0);
-        v = temp2*255.0;
-        tempRGB2 = CHSV(h, s, v);
-        if(tempRGB2 > LEFT[pos]){
-            LEFT[p] = tempRGB2;
-        }
-#else
-        //LEFT[p] = RIGHT[pos];
-#endif
-        yield();
-    }
-}
 
 void codeForCore0Task(void *pvParameters) {
   Serial.print("Task fft ");
@@ -235,6 +141,10 @@ void codeForCore0Task(void *pvParameters) {
 void codeForCore1Task(void *pvParameters) {
   for (;;)
   {
+    if (optb){
+      currentState = TEST;
+      optb = false;
+    }
     //Serial.print("Task 1 loop on core ");
     //Serial.println(xPortGetCoreID());
     delay(100);
@@ -293,9 +203,7 @@ void codeForCore1Task(void *pvParameters) {
             changeState(SHOW_DOWN);
           }
       break;
-      case MUSIC:
-        //audio_spectrum();
-        //    FastLED.show();
+      case MUSIC:       
         music(leds, CRGB::Red, sizeof(leds)/3);
         break;
     }
@@ -391,10 +299,7 @@ void setup() {
   IPAddress apIP = WiFi.softAPIP();
   Serial.println("AP IP address: " + apIP.toString());
   server.on("/", HTTP_GET, handleRoot);
-  server.on("/brightness", HTTP_GET, handleBrightness);
-  server.on("/setbrightness", HTTP_POST, handleSetBrightness);
-  server.on("/state", HTTP_GET, handleState);
-  server.on("/setState", HTTP_POST, handleSetState);
+  server.on("/update", HTTP_POST, handleUpdate);
   server.begin();
   setup_tasks();
 }
@@ -417,70 +322,58 @@ void changeState(State newState) {
   currentState = newState;
   stateChangeTime = millis();
 }
-
 void handleRoot(AsyncWebServerRequest *request) {
-  String html = "<html><body style='font-size: 18px;'>";
-  html += "<h1>LED Control</h1>";
-  html += "<p style='font-size: 18px;'>Current Brightness: " + String(currentBrightness) + "</p>";
-  html += "<form action='/setbrightness' method='POST'>";
-  html += "<input style='font-size: 18px;' type='range' name='brightness' min='0' max='255' value='" + String(currentBrightness) + "'>";
-  html += "<input style='font-size: 18px;' type='submit' value='Set Brightness'>";
-  html += "<p style='font-size: 18px;'>Current Brightness: " + String(currentBrightness) + "</p>";
-  html += "<form action='/setbrightness' method='POST'>";
-  html += "<input style='font-size: 18px;' type='range' name='state' min='0' max='255' value='" + String(currentState) + "'>";
-  html += "<input style='font-size: 18px;' type='submit' value='Set state'>";
+  // Send the HTML form to set the options
+  String html = "<html><body>";
+  html += "<h1>Set Options</h1>";
+  html += "<form action='/update' method='POST'>";
+  html += "Option 1: <input type='number' name='opt1' min='0' max='255' value='" + String(opt1) + "'><br>";
+  html += "Option 2: <input type='number' name='opt2' min='0' max='255' value='" + String(opt2) + "'><br>";
+  html += "Option 3: <input type='number' name='opt3' min='0' max='255' value='" + String(opt3) + "'><br>";
+  html += "Option 4: <input type='number' name='opt4' min='0' max='255' value='" + String(opt4) + "'><br>";
+  html += "Option 5: <input type='number' name='opt5' min='0' max='255' value='" + String(opt5) + "'><br>";
+  html += "POTA: <input type='checkbox' name='pota' " + String(pota ? "checked" : "") + "><br>";
+  html += "OPTB: <input type='checkbox' name='optb' " + String(optb ? "checked" : "") + "><br>";
+  html += "<input type='submit' value='Submit'>";
   html += "</form>";
   html += "</body></html>";
+
   request->send(200, "text/html", html);
-    request->redirect("/");
 }
-
-void handleBrightness(AsyncWebServerRequest *request) {
-  request->send(200, "text/plain", String(currentBrightness));
-}
-
-void handleSetBrightness(AsyncWebServerRequest *request) {
-  if (request->hasParam("brightness", true)) {
-    int newBrightness = request->getParam("brightness", true)->value().toInt();
-    if (newBrightness >= 0 && newBrightness <= 255) {
-      currentBrightness = newBrightness;
-      FastLED.setBrightness(currentBrightness);
-      request->send(303); // 303 is the HTTP status code for "See Other" (redirect)
-      request->redirect("/");
-    } else {
-      request->send(400, "text/plain", "Invalid brightness value");
+void handleUpdate(AsyncWebServerRequest *request) {
+  // Extract the POST data
+  if (request->args()) {
+    for (size_t i = 0; i < request->args(); i++) {
+      String paramName = request->argName(i);
+      String paramValue = request->arg(i);
+      
+      if (paramName == "opt1") {
+        opt1 = paramValue.toInt();
+      } else if (paramName == "opt2") {
+        opt2 = paramValue.toInt();
+      } else if (paramName == "opt3") {
+        opt3 = paramValue.toInt();
+      } else if (paramName == "opt4") {
+        opt4 = paramValue.toInt();
+      } else if (paramName == "opt5") {
+        opt5 = paramValue.toInt();
+      } else if (paramName == "pota") {
+        pota = (paramValue == "on");
+      } else if (paramName == "optb") {
+        optb = (paramValue == "on");
+      }
     }
-  } else {
-    request->send(400, "text/plain", "Missing brightness parameter");
   }
+
+  // Redirect back to the root page after setting the options
+  request->redirect("/");
 }
-
-void handleState(AsyncWebServerRequest *request) {
-  request->send(200, "text/plain", String(currentState));
-}
-
-void handleSetState(AsyncWebServerRequest *request) {
-  if (request->hasParam("state", true)) {
-    int newState = request->getParam("state", true)->value().toInt();
-    if (newState > 0){      
-      request->send(303); // 303 is the HTTP status code for "See Other" (redirect)
-      request->redirect("/");
-      //led_test_state= true;      
-    } else {
-      request->send(400, "text/plain", "Invalid state value");
-    }
-  } else {
-    request->send(400, "text/plain", "Missing state parameter");
-  }
-}
-
-
 void run_fft(){
    for(int i=0; i<SAMPLES; i++)
     {
       microseconds = micros(); 
       int value = analogRead(34);               
-      vReal[i]= value/16;                      
+      vReal[i]= value/8;                      
       vImag[i] = 0;
       while(micros() - microseconds < sampling_period_us){  }
       microseconds += sampling_period_us;
