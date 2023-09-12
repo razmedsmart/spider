@@ -86,7 +86,7 @@ State showOrder[] = { SHOW_UP,  SHOW_DOWN};
 
 State currentState = TEST;
 unsigned long stateChangeTime = 0;
-const char* apSSID = "MyESP32AP";  // Change this to the SSID you want for your AP
+const char* apSSID = "spider";  // Change this to the SSID you want for your AP
 const char* apPassword = "1111111111";  // Change this to the password for your AP
 AsyncWebServer server(80);
 unsigned char newBrightness = 255;
@@ -154,7 +154,7 @@ void codeForCore1Task(void *pvParameters) {
           FastLED.show();
           led_test();
         };
-        if (millis() - stateChangeTime >= 2000) {
+        if (millis() - stateChangeTime >= 15000) {
           stateChangeTime = millis();
           //fadeOutLeds(2000);
           changeState(MUSIC);
@@ -169,7 +169,8 @@ void codeForCore1Task(void *pvParameters) {
         show_grow(leds_cloud, sizeof(leds_cloud)/3, true, 42, 255, 10);
         //fadeOutLeds(2000);
         FastLED.show();
-        changeState(CONFFETI);        
+        changeState(SHOW_DOWN);        
+        //changeState(CONFFETI);        
         break;
       case SHOW_DOWN:
         show_grow(leds_cloud, sizeof(leds_cloud)/3, false, 42, 0, 10);
@@ -192,7 +193,8 @@ void codeForCore1Task(void *pvParameters) {
             //FastLED.clear();
             fadeOutLeds(2000);
             FastLED.show();
-            changeState(PRIDE);
+            changeState(CONFFETI);
+            //changeState(PRIDE);
           }
       break;
       case PRIDE:
@@ -200,7 +202,8 @@ void codeForCore1Task(void *pvParameters) {
         if (millis() - stateChangeTime >= 10000) {
             //FastLED.clear();
             FastLED.show();
-            changeState(SHOW_DOWN);
+            changeState(PRIDE);
+            //changeState(SHOW_DOWN);
           }
       break;
       case MUSIC:       
@@ -349,6 +352,13 @@ void handleUpdate(AsyncWebServerRequest *request) {
       
       if (paramName == "opt1") {
         opt1 = paramValue.toInt();
+        switch(opt1){
+          case 0 : changeState(TEST); break;
+          case 1 : changeState(SHOW_UP); break;
+          case 2 : changeState(CONFFETI); break;
+          case 3 : changeState(PRIDE); break;
+          case 4 : changeState(WAVE); break;
+        }
       } else if (paramName == "opt2") {
         opt2 = paramValue.toInt();
       } else if (paramName == "opt3") {
