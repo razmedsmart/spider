@@ -1,0 +1,17 @@
+void rainbow();
+void rainbowWithGlitter();
+void rainbow_scaling();
+void fire();
+void fireSparks();
+void fireRainbow();
+void noise1();
+void noise2();
+void noise3();
+void blendwave();
+void confetti();
+void ripple_blur();
+void sinelon();
+void dot_beat();
+void juggle();
+void wave2(CRGB*, int);
+void pride(CRGB*, int);
