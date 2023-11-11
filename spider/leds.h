@@ -1,5 +1,5 @@
-void rainbow();
-void rainbowWithGlitter();
+void rainbow(CRGB *, int );
+void rainbowWithGlitter(CRGB *_leds, int num_leds);
 void rainbow_scaling();
 void fire();
 void fireSparks();
@@ -15,3 +15,5 @@ void dot_beat();
 void juggle();
 void wave2(CRGB*, int);
 void pride(CRGB*, int);
+void duplicate_led();
+void show_grow( CRGB *_leds, int num_leds, bool up , unsigned char hue, unsigned char bright, int _delay_msec);
