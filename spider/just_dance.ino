@@ -5,7 +5,9 @@ int pattern = 0;
 typedef void (*SimplePatternList[])(CRGB *_leds, int num_leds);
 typedef void (*_SimplePatternList[])();
 //_SimplePatternList _autoPatterns = {  rainbow, rainbowWithGlitter, rainbow_scaling, fire, fireSparks, fireRainbow, noise1, noise2, noise3, blendwave, confetti, ripple_blur, sinelon, dot_beat, juggle };
-SimplePatternList autoPatterns = {pride, rainbow};
+SimplePatternList autoPatterns_blue = {pride_blue, pride_blue};
+SimplePatternList autoPatterns = {pride, pride};
+
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 bool button_pressed = false;
 unsigned long pressed_until_milli;
@@ -22,7 +24,7 @@ uint8_t get_gCurrentPatternNumber(){
 void set_gCurrentPatternNumber(uint8_t val){
   gCurrentPatternNumber = val;
 }
-#define PATTERN_PERIOD_SEC 50
+#define PATTERN_PERIOD_SEC 500
 #define SOUND_REACT_PERIOD_MINUTES 4
 
 #define P0 0
@@ -178,7 +180,11 @@ void run_just_dance(){
   if(get_music_mode()){
     run_music_reactive();
   }else{
-    autoPatterns[pattern](_leds,num_leds);
+    if (digitalRead(mode_button_pin) == LOW){
+      autoPatterns[pattern](_leds,num_leds);
+    } else{
+      autoPatterns_blue[pattern](_leds,num_leds);
+    }
   }
   duplicate_led();
   

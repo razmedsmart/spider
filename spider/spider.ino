@@ -35,20 +35,21 @@
     #define MAX_POWER_MILLIAMPS  (60 * TOTAL_NUM_LEDS)
 bool just_dance = false;
 #else // JUST_DANCE
-    #define NUM_LEDS_0 150
-    #define NUM_LEDS_1 130
-    #define NUM_LEDS_2 107
-    #define NUM_LEDS_3 150
+    #define NUM_LEDS_0 150 //Amudim
+    #define NUM_LEDS_1 150 //Face 130
+    #define NUM_LEDS_2 150 // Mishgeret 170
+    #define NUM_LEDS_3 150 //Oznaim
     #define NUM_LEDS_C 10
     #define LED_0_PIN  2  //Amudim
     #define LED_1_PIN  19 // face 
     #define LED_2_PIN  5  // Mishgeret 23 right 30 buttom 24 lef 30 top 107
     #define LED_3_PIN  18  // Oznaim 150
     #define LED_PIN_C  23
-    #define MAX_POWER_MILLIAMPS 500
+    #define MAX_POWER_MILLIAMPS (30 * (NUM_LEDS_1+NUM_LEDS_2 + NUM_LEDS_3 ))
 bool just_dance = true;
 #endif
 const int press_button_pin = 21;
+const int mode_button_pin = 23;
 
 
 // Forward declarations
@@ -94,6 +95,7 @@ void setup() {
   pinMode(LED_2_PIN, OUTPUT);  // Set the button as an input with an internal pull-up resistor
   pinMode(LED_3_PIN, OUTPUT);  // Set the button as an input with an internal pull-up resistor
   pinMode(press_button_pin, INPUT_PULLUP);
+  pinMode(mode_button_pin, INPUT_PULLUP);
 
   //pinMode(buttonPin, INPUT_PULLUP);  // Set the button as an input with an internal pull-up resistor
   FastLED.addLeds<WS2812B, LED_0_PIN, GRB>(leds_0, sizeof(leds_0)/3);
@@ -165,7 +167,7 @@ void codeForCore1Task(void *pvParameters) {
     {    
       if(digitalRead(press_button_pin) == LOW){
         notify_button_pressed();
-      }
+      }      
       run_just_dance();
       continue;
     }

@@ -15,5 +15,6 @@ void dot_beat();
 void juggle();
 void wave2(CRGB*, int);
 void pride(CRGB*, int);
+void pride_blue(CRGB*, int);
 void duplicate_led();
 void show_grow( CRGB *_leds, int num_leds, bool up , unsigned char hue, unsigned char bright, int _delay_msec);
